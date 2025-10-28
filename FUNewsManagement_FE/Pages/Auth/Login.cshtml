@@ -1,0 +1,56 @@
+﻿@page
+@model FUNewsManagement_FE.Pages.Account.LoginModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Đăng nhập";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-5">
+            <div class="card shadow-sm border-0 rounded-4">
+                <div class="card-body p-4">
+                    <h3 class="mb-4 text-center text-primary">Đăng nhập</h3>
+
+                    @if (!string.IsNullOrEmpty(ViewData["ErrorMessage"] as string))
+                    {
+                        <div class="alert alert-danger">@ViewData["ErrorMessage"]</div>
+                    }
+
+                    @if (Model.LoginResult == null)
+                    {
+                        <form method="post">
+                            <div class="mb-3">
+                                <label class="form-label">Email</label>
+                                <input name="Email" class="form-control" placeholder="you@example.com" required />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Mật khẩu</label>
+                                <input name="Password" type="password" class="form-control" placeholder="Mật khẩu" required />
+                            </div>
+
+                            <button type="submit" class="btn btn-primary w-100">Đăng nhập</button>
+                        </form>
+                    }
+                    else
+                    {
+                        <div class="alert alert-success text-center">Đăng nhập thành công! Đang chuyển hướng...</div>
+                        <script>
+                            localStorage.setItem("accessToken", "@Model.LoginResult.Data.AccessToken");
+                            localStorage.setItem("refreshToken", "@Model.LoginResult.Data.RefreshToken");
+                            localStorage.setItem("userEmail", "@Model.LoginResult.Data.Account.Email");
+                            localStorage.setItem("userRole", "@Model.LoginResult.Data.Account.Role");
+                            localStorage.setItem("userName", "@Model.LoginResult.Data.Account.Name");
+
+                            // Redirect sau 1s
+                            setTimeout(() => {
+                                window.location.href = "/analytics/dashboard";
+                            }, 1000);
+                        </script>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
