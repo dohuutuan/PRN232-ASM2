@@ -31,5 +31,9 @@ public partial class NewsArticle
 
     public virtual SystemAccount? CreatedBy { get; set; }
 
+    public virtual ICollection<NewsImage> NewsImages { get; set; } = new List<NewsImage>();
+
+    public virtual ICollection<NewsView> NewsViews { get; set; } = new List<NewsView>();
+
     public virtual ICollection<Tag> Tags { get; set; } = new List<Tag>();
 }

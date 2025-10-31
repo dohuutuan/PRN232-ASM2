@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using FUNewsManagement_CoreAPI.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace FUNewsManagement_CoreAPI.Models;
@@ -14,7 +13,9 @@ public partial class FunewsManagementContext : DbContext
         : base(options)
     {
     }
-
+    public virtual DbSet<AuditLog> AuditLogs { get; set; }
+    public virtual DbSet<NewsImage> NewsImages { get; set; }
+    public virtual DbSet<NewsView> NewsViews { get; set; }
     public virtual DbSet<Category> Categories { get; set; }
 
     public virtual DbSet<NewsArticle> NewsArticles { get; set; }
@@ -29,6 +30,59 @@ public partial class FunewsManagementContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<AuditLog>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PK__AuditLog__3214EC07F315A029");
+
+            entity.Property(e => e.Action).HasMaxLength(50);
+            entity.Property(e => e.EntityName).HasMaxLength(100);
+            entity.Property(e => e.Timestamp)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+
+            entity.HasOne(d => d.Account).WithMany(p => p.AuditLogs)
+                .HasForeignKey(d => d.AccountId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("FK_AuditLogs_SystemAccount");
+        });
+        modelBuilder.Entity<NewsImage>(entity =>
+        {
+            entity.HasKey(e => e.ImageId).HasName("PK__NewsImag__7516F70C6264A358");
+
+            entity.ToTable("NewsImage");
+
+            entity.Property(e => e.CreatedDate)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.ImageUrl).HasMaxLength(255);
+            entity.Property(e => e.NewsArticleId).HasMaxLength(20);
+
+            entity.HasOne(d => d.NewsArticle).WithMany(p => p.NewsImages)
+                .HasForeignKey(d => d.NewsArticleId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK__NewsImage__NewsA__3F466844");
+        });
+
+        modelBuilder.Entity<NewsView>(entity =>
+        {
+            entity.HasKey(e => e.ViewId).HasName("PK__NewsView__1E371CF65398B8BD");
+
+            entity.ToTable("NewsView");
+
+            entity.Property(e => e.NewsArticleId).HasMaxLength(20);
+            entity.Property(e => e.ViewedAt)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+
+            entity.HasOne(d => d.NewsArticle).WithMany(p => p.NewsViews)
+                .HasForeignKey(d => d.NewsArticleId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("FK_NewsView_Article");
+
+            entity.HasOne(d => d.ViewedBy).WithMany(p => p.NewsViews)
+                .HasForeignKey(d => d.ViewedById)
+                .HasConstraintName("FK_NewsView_User");
+        });
         modelBuilder.Entity<Category>(entity =>
         {
             entity.ToTable("Category");
@@ -94,18 +148,19 @@ public partial class FunewsManagementContext : DbContext
 
         modelBuilder.Entity<RefreshToken>(entity =>
         {
-            entity.HasKey(e => e.Id).HasName("PK__RefreshT__3214EC27FAA176D7");
+            entity.HasKey(e => e.Id).HasName("PK__RefreshT__3214EC2736704628");
 
             entity.ToTable("RefreshToken");
 
             entity.Property(e => e.Id).HasColumnName("ID");
-            entity.Property(e => e.Token).HasMaxLength(512);
+            entity.Property(e => e.ExpireAt).HasColumnType("datetime");
+            entity.Property(e => e.Token).HasMaxLength(255);
             entity.Property(e => e.UserId).HasColumnName("UserID");
 
             entity.HasOne(d => d.User).WithMany(p => p.RefreshTokens)
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK__RefreshTo__UserI__4316F928");
+                .HasConstraintName("FK__RefreshTo__UserI__3B75D760");
         });
 
         modelBuilder.Entity<SystemAccount>(entity =>

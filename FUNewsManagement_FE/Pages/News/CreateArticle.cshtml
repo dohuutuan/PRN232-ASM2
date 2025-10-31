@@ -1,0 +1,70 @@
+﻿@* @page
+@model CreateArticleModel
+@{
+    ViewData["Title"] = "Tạo bài viết";
+}
+
+<h2>Tạo bài viết mới</h2>
+
+<form method="post" id="articleForm">
+    <div class="mb-3">
+        <label for="title" class="form-label">Tiêu đề</label>
+        <input type="text" class="form-control" id="title" name="Title" asp-for="Title" />
+    </div>
+
+    <div class="mb-3">
+        <label for="content" class="form-label">Nội dung</label>
+        <textarea class="form-control" id="content" name="Content" asp-for="Content" rows="5"></textarea>
+    </div>
+
+    <div class="mb-3">
+        <label for="tags" class="form-label">Tags</label>
+        <input type="text" class="form-control" id="tags" name="Tags" asp-for="Tags" placeholder="Nhập tag" />
+        <small class="text-muted">Nhấn nút "Suggest Tags" để gợi ý.</small>
+    </div>
+
+    <button type="button" class="btn btn-secondary" id="suggestTagsBtn">Suggest Tags</button>
+    <button type="submit" class="btn btn-primary" formaction="?handler=SaveArticle">Lưu bài viết</button>
+</form>
+
+<div id="suggestedTagsContainer" class="mt-2"></div>
+
+@section Scripts {
+    <script>
+        const suggestBtn = document.getElementById('suggestTagsBtn');
+        const contentInput = document.getElementById('content');
+        const tagsInput = document.getElementById('tags');
+        const suggestedContainer = document.getElementById('suggestedTagsContainer');
+
+        suggestBtn.addEventListener('click', async () => {
+            const content = contentInput.value;
+            if (!content) return;
+
+            const response = await fetch('?handler=SuggestTags', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ Content: content })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                suggestedContainer.innerHTML = '';
+                data.tags.forEach(tag => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'btn btn-sm btn-outline-primary m-1';
+                    btn.textContent = tag;
+                    btn.addEventListener('click', () => {
+                        const currentTags = tagsInput.value.split(',').map(t => t.trim()).filter(t => t);
+                        if (!currentTags.includes(tag)) {
+                            currentTags.push(tag);
+                            tagsInput.value = currentTags.join(', ');
+                        }
+                    });
+                    suggestedContainer.appendChild(btn);
+                });
+            }
+        });
+    </script>
+} *@

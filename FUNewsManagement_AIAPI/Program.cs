@@ -6,6 +6,14 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddHttpClient();
+builder.Services.AddSingleton<GeminiService>(sp =>
+{
+    var httpClient = sp.GetRequiredService<IHttpClientFactory>().CreateClient();
+    var apiKey = builder.Configuration["Gemini:ApiKey"];
+    return new GeminiService(httpClient, apiKey);
+});
+builder.Services.AddScoped<HttpClient>();
 
 var app = builder.Build();
 

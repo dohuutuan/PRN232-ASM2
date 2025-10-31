@@ -24,7 +24,7 @@ namespace FUNewsManagement_CoreAPI.Services
 
         public async Task<LoginResponseDTO> Login(LoginRequestDTO req)
         {
-            if (req.Email.Equals(_config["AdminAccount:Email"])
+                if (req.Email.Equals(_config["AdminAccount:Email"])
                 && req.Password.Equals(_config["AdminAccount:Password"]))
             {
                 var admin = new SystemAccount
@@ -64,8 +64,8 @@ namespace FUNewsManagement_CoreAPI.Services
             {
                 UserId = user.AccountId,
                 Token = rfToken,
-                ExpiresAt = DateTime.UtcNow.AddDays(double.Parse(_config["RefreshTokenExpiration"])),
-                IsRevoked = false,
+                ExpireAt = DateTime.UtcNow.AddDays(double.Parse(_config["RefreshTokenExpiration"])),
+                IsRevoke = false,
             });
             await _refreshRepo.SaveChangesAsync();
             return new LoginResponseDTO

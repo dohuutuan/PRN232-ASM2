@@ -18,4 +18,6 @@ public partial class SystemAccount
     public virtual ICollection<NewsArticle> NewsArticles { get; set; } = new List<NewsArticle>();
 
     public virtual ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
+    public virtual ICollection<AuditLog> AuditLogs { get; set; } = new List<AuditLog>();
+    public virtual ICollection<NewsView> NewsViews { get; set; } = new List<NewsView>();
 }

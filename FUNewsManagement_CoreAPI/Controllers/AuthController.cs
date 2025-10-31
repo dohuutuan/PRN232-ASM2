@@ -21,18 +21,18 @@ namespace FUNewsManagement_CoreAPI.Controllers
             try
             {
                 var result = await _authService.Login(req);
-                return Ok(new ApiResponse<LoginResponseDTO>
+                return Ok(new APIResponse<LoginResponseDTO>
                 {
-                    Success = true,
+                    StatusCode = 200,
                     Message = "Login successful",
                     Data = result
                 });
             }
             catch (UnauthorizedAccessException ex)
             {
-                return Unauthorized(new ApiResponse<object>
+                return Unauthorized(new APIResponse<object>
                 {
-                    Success = false,
+                    StatusCode = 401,
                     Message = ex.Message,
                 });
             }

@@ -11,9 +11,9 @@ public partial class RefreshToken
 
     public string Token { get; set; } = null!;
 
-    public DateTime ExpiresAt { get; set; }
+    public DateTime ExpireAt { get; set; }
 
-    public bool IsRevoked { get; set; }
+    public bool IsRevoke { get; set; }
 
     public virtual SystemAccount User { get; set; } = null!;
 }

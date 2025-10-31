@@ -1,109 +1,98 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using System.Net.Http.Json;
-using System.Text.Json.Serialization;
+using System.Text;
+using System.Text.Json;
 
-namespace FUNewsManagement_FE.Pages.Account
+namespace FUNewsManagement_FE.Pages.Auth
 {
     public class LoginModel : PageModel
     {
-        private readonly IHttpClientFactory _clientFactory;
-        private readonly IConfiguration _config;
+        private readonly IHttpClientFactory _httpClientFactory;
 
-        public LoginModel(IHttpClientFactory clientFactory, IConfiguration config)
+        public LoginModel(IHttpClientFactory httpClientFactory)
         {
-            _clientFactory = clientFactory;
-            _config = config;
+            _httpClientFactory = httpClientFactory;
         }
 
-        public ApiResponse? LoginResult { get; set; }
+        [BindProperty]
+        public LoginInput Input { get; set; } = new();
 
-        public void OnGet() { }
+        public string? AlertMessage { get; set; }
+
+        public class LoginInput
+        {
+            public string Email { get; set; } = string.Empty;
+            public string Password { get; set; } = string.Empty;
+        }
 
         public async Task<IActionResult> OnPostAsync()
         {
-            var email = Request.Form["Email"].ToString();
-            var password = Request.Form["Password"].ToString();
-
-            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
-            {
-                ViewData["ErrorMessage"] = "Vui lòng nhập đầy đủ thông tin.";
+            if (!ModelState.IsValid)
                 return Page();
-            }
+
+            var client = _httpClientFactory.CreateClient();
+            var json = JsonSerializer.Serialize(Input);
+            var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+            HttpResponseMessage response;
 
             try
             {
-                var apiBase = _config["ApiSettings:BaseUrl"];
-                if (string.IsNullOrEmpty(apiBase))
-                {
-                    ViewData["ErrorMessage"] = "Chưa cấu hình ApiSettings:BaseUrl trong appsettings.json.";
-                    return Page();
-                }
-
-                var client = _clientFactory.CreateClient();
-                client.BaseAddress = new Uri(apiBase);
-
-                var response = await client.PostAsJsonAsync("/api/auth/login", new
-                {
-                    Email = email,
-                    Password = password
-                });
-
-                if (!response.IsSuccessStatusCode)
-                {
-                    ViewData["ErrorMessage"] = "Email hoặc mật khẩu không đúng.";
-                    return Page();
-                }
-
-                var result = await response.Content.ReadFromJsonAsync<ApiResponse>();
-                if (result?.Data == null || string.IsNullOrEmpty(result.Data.AccessToken))
-                {
-                    var raw = await response.Content.ReadAsStringAsync();
-                    ViewData["ErrorMessage"] = "Không nhận được phản hồi hợp lệ từ máy chủ. Raw: " + raw;
-                    return Page();
-                }
-
-                // ✅ Gửi dữ liệu qua View để render JavaScript lưu localStorage
-                LoginResult = result;
-                return Page();
+                response = await client.PostAsync("https://localhost:7244/api/auth/login", content);
             }
-            catch (Exception ex)
+            catch
             {
-                ViewData["ErrorMessage"] = "Không thể kết nối tới API: " + ex.Message;
+                AlertMessage = "Không thể kết nối tới máy chủ. Vui lòng thử lại sau.";
                 return Page();
             }
-        }
 
-        // DTO
-        public class ApiResponse
-        {
-            public bool Success { get; set; }
-            public string? Message { get; set; }
-            public LoginData? Data { get; set; }
-        }
+            string responseBody = await response.Content.ReadAsStringAsync();
 
-        public class LoginData
-        {
-            [JsonPropertyName("accessToken")]
-            public string? AccessToken { get; set; }
+            // ❌ Login thất bại
+            if (!response.IsSuccessStatusCode)
+            {
+                try
+                {
+                    using var doc = JsonDocument.Parse(responseBody);
+                    if (doc.RootElement.TryGetProperty("message", out var message))
+                    {
+                        AlertMessage = message.GetString() ?? "Đăng nhập thất bại.";
+                    }
+                    else
+                    {
+                        AlertMessage = "Email hoặc mật khẩu không đúng!";
+                    }
+                }
+                catch
+                {
+                    AlertMessage = response.StatusCode == System.Net.HttpStatusCode.Unauthorized
+                        ? "Email hoặc mật khẩu không đúng!"
+                        : "Server đang lỗi, vui lòng thử lại sau.";
+                }
 
-            [JsonPropertyName("refreshToken")]
-            public string? RefreshToken { get; set; }
+                return Page();
+            }
 
-            [JsonPropertyName("account")]
-            public AccountDTO? Account { get; set; }
-        }
+            // ✅ Login thành công
+            try
+            {
+                using var doc = JsonDocument.Parse(responseBody);
+                var data = doc.RootElement.GetProperty("data");
 
-        public class AccountDTO
-        {
-            [JsonPropertyName("email")]
-            public string? Email { get; set; }
+                var accessToken = data.GetProperty("accessToken").GetString();
+                var refreshToken = data.GetProperty("refreshToken").GetString();
 
-            [JsonPropertyName("name")]
-            public string? Name { get; set; }
+                HttpContext.Session.SetString("access_token", accessToken!);
+                HttpContext.Session.SetString("refresh_token", refreshToken!);
 
-            [JsonPropertyName("role")]
-            public int Role { get; set; }
+                // ✅ Chuyển sang dashboard
+                return RedirectToPage("/Analytics/Dashboard");
+            }
+            catch
+            {
+                AlertMessage = "Phản hồi từ máy chủ không hợp lệ.";
+                return Page();
+            }
         }
     }
 }
